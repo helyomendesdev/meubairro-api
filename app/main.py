@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -41,8 +42,29 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
     headers = {"WWW-Authenticate": "Bearer"} if exc.status_code == 401 else None
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": exc.message},
+        content={"detail": exc.message, "error": exc.message},
         headers=headers,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(
+    _: Request, exc: RequestValidationError
+) -> JSONResponse:
+    fields = [
+        {
+            "field": ".".join(str(part) for part in error["loc"][1:]),
+            "message": str(error.get("msg", "Valor inválido.")),
+        }
+        for error in exc.errors()
+    ]
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Dados inválidos.",
+            "error": "Dados inválidos.",
+            "fields": fields,
+        },
     )
 
 

@@ -32,6 +32,8 @@ def decode_access_token(token: str, settings: Settings) -> dict[str, object]:
             settings.jwt_secret,
             algorithms=[settings.jwt_algorithm],
         )
+    except jwt.ExpiredSignatureError as exc:
+        raise UnauthorizedError("Sessão expirada. Faça login novamente.") from exc
     except jwt.InvalidTokenError as exc:
         raise UnauthorizedError("Token inválido ou expirado.") from exc
 
