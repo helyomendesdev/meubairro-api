@@ -61,7 +61,7 @@ def list_public_reports(
         db, category=category, status=status, query=query, limit=limit, offset=offset
     )
     payload = [reports.to_read(item).model_dump(mode="json") for item in items]
-    etag = '"%s"' % hashlib.md5(
+    etag = '"%s"' % hashlib.sha256(
         json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
     response.headers["X-Total-Count"] = str(total)
@@ -76,7 +76,6 @@ def list_public_reports(
 
 @router.get(
     "/stats",
-    response_model=ReportStats,
     summary="Agregações de denúncias por status e categoria.",
 )
 def report_stats(db: Session = Depends(get_db)) -> ReportStats:
@@ -85,7 +84,6 @@ def report_stats(db: Session = Depends(get_db)) -> ReportStats:
 
 @router.get(
     "/{report_id}",
-    response_model=ReportRead,
     responses={
         404: {
             "description": "Denúncia não encontrada.",
