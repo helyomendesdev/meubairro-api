@@ -91,6 +91,7 @@ app/
 tests/
   conftest.py
   test_api_flow.py
+  test_entrega4.py
   test_health.py
 ```
 
@@ -113,6 +114,8 @@ A aplicação ficará disponível em `http://127.0.0.1:8000`.
 
 Para desenvolvimento local, copie `.env.example` para `.env` e ajuste o segredo JWT antes de qualquer uso fora do ambiente local.
 
+Para popular dados de demonstração (idempotente): `uv run python -m app.seed`.
+
 ## Validação
 
 ```bash
@@ -133,4 +136,19 @@ Artefatos técnicos em andamento:
 - testes automatizados e documentação de execução;
 - mínimo de 8 tarefas de API e 8 tarefas de UI registradas no Trello.
 
-A integração completa da UI com a API está sendo implementada no repositório `meubairro-ui`.
+## Entrega 4 — Integração UI/API
+
+Na sprint da Entrega 4 (27/11/2026, pull request #3, merge `a2cb8bf`) o contrato da API foi ampliado para a integração completa com a UI:
+
+- `GET /api/v1/reports/stats` — agregações de denúncias por status e categoria (consumido pelo painel e pelo mapa da UI).
+- Erros de validação uniformes: respostas 422 devolvem `{detail, error, fields[]}` com mensagem por campo (app/main.py).
+- Contrato de erro unificado: `detail` e `error` no mesmo payload, para que as mensagens específicas da API cheguem ao cliente da UI.
+- Mensagem 401 específica de sessão expirada ("Sessão expirada. Faça login novamente."), distinta de token inválido.
+- Validação de complexidade de senha no registro: senha exige letra e número além de 8 caracteres.
+- Paginação na listagem pública: `?limit=` (1-100) e `?offset=` com header `X-Total-Count`.
+- Cache condicional: `ETag` (SHA-256) e suporte a `If-None-Match` (304) no `GET /api/v1/reports`.
+- Dados de demonstração idempotentes via `uv run python -m app.seed` (app/seed.py).
+
+Validação: ruff sem avisos; 12/12 testes (6 novos em `tests/test_entrega4.py` cobrindo estatísticas, paginação, ETag, erros de validação, senha e 401); SonarCloud verde no pull request #3. O consumo completo desses endpoints pela UI está documentado no README do repositório `meubairro-ui`.
+
+A integração completa da UI com a API está implementada e publicada em https://helyomendesdev.github.io/meubairro-ui/.
