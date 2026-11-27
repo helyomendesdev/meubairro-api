@@ -1,4 +1,4 @@
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.report import Report, ReportCategory, ReportStatus
@@ -20,6 +20,33 @@ def create(db: Session, report: Report) -> Report:
     return report
 
 
+def count_reports(
+    db: Session,
+    *,
+    user_id: int | None = None,
+    category: ReportCategory | None = None,
+    status: ReportStatus | None = None,
+    query: str | None = None,
+) -> int:
+    statement = select(func.count()).select_from(Report)
+    if user_id is not None:
+        statement = statement.where(Report.user_id == user_id)
+    if category is not None:
+        statement = statement.where(Report.category == category)
+    if status is not None:
+        statement = statement.where(Report.status == status)
+    if query:
+        term = f"%{query.strip()}%"
+        statement = statement.where(
+            or_(
+                Report.title.ilike(term),
+                Report.description.ilike(term),
+                Report.location.ilike(term),
+            )
+        )
+    return int(db.scalar(statement) or 0)
+
+
 def list_reports(
     db: Session,
     *,
@@ -27,6 +54,8 @@ def list_reports(
     category: ReportCategory | None = None,
     status: ReportStatus | None = None,
     query: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[Report]:
     statement = select(Report).options(joinedload(Report.reporter))
     if user_id is not None:
@@ -45,4 +74,8 @@ def list_reports(
             )
         )
     statement = statement.order_by(Report.created_at.desc())
+    if offset:
+        statement = statement.offset(offset)
+    if limit is not None:
+        statement = statement.limit(limit)
     return list(db.scalars(statement).unique().all())

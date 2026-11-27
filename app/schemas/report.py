@@ -5,6 +5,22 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.models.report import ReportCategory, ReportStatus
 
 
+class ReportStatusCount(BaseModel):
+    status: ReportStatus
+    count: int
+
+
+class ReportCategoryCount(BaseModel):
+    category: ReportCategory
+    count: int
+
+
+class ReportStats(BaseModel):
+    total: int
+    by_status: list[ReportStatusCount]
+    by_category: list[ReportCategoryCount]
+
+
 class ReportCreate(BaseModel):
     title: str = Field(min_length=3, max_length=120)
     description: str = Field(min_length=5, max_length=5000)

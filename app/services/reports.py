@@ -1,3 +1,4 @@
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
@@ -5,7 +6,14 @@ from app.models.report import Report, ReportCategory, ReportStatus
 from app.models.status_history import StatusHistory
 from app.models.user import User
 from app.repositories import reports
-from app.schemas.report import ReportCreate, ReportRead, ReportStatusUpdate
+from app.schemas.report import (
+    ReportCategoryCount,
+    ReportCreate,
+    ReportRead,
+    ReportStats,
+    ReportStatusCount,
+    ReportStatusUpdate,
+)
 
 
 def create_report(db: Session, user: User, payload: ReportCreate) -> Report:
@@ -31,6 +39,8 @@ def list_reports(
     category: ReportCategory | None = None,
     status: ReportStatus | None = None,
     query: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[Report]:
     return reports.list_reports(
         db,
@@ -38,6 +48,41 @@ def list_reports(
         category=category,
         status=status,
         query=query,
+        limit=limit,
+        offset=offset,
+    )
+
+
+def stats(db: Session) -> ReportStats:
+    by_status = [
+        ReportStatusCount(status=row_status, count=count)
+        for row_status, count in db.execute(
+            select(Report.status, func.count()).group_by(Report.status)
+        ).all()
+    ]
+    by_category = [
+        ReportCategoryCount(category=row_category, count=count)
+        for row_category, count in db.execute(
+            select(Report.category, func.count()).group_by(Report.category)
+        ).all()
+    ]
+    return ReportStats(
+        total=sum(item.count for item in by_status),
+        by_status=by_status,
+        by_category=by_category,
+    )
+
+
+def count_reports(
+    db: Session,
+    *,
+    user_id: int | None = None,
+    category: ReportCategory | None = None,
+    status: ReportStatus | None = None,
+    query: str | None = None,
+) -> int:
+    return reports.count_reports(
+        db, user_id=user_id, category=category, status=status, query=query
     )
 
 
